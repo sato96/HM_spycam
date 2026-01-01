@@ -1,0 +1,31 @@
+# Ambiente virtuale
+venv/
+ENV/
+env/
+.venv/
+
+# Python cache & compilati
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Log & temp
+*.log
+*.tmp
+*.err
+*.gz
+*.swp
+
+# Config locali / segreti
+*.env
+HM_notifier.env
+HM_notifier.service
+*.mp4
+
+
+# Backup & roba editor
+*.bak
+*.old
+*.save
+.vscode/
+.idea/

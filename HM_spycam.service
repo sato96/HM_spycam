@@ -1,0 +1,16 @@
+[Unit]
+Description=HM_spycam microservice
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/HomeManager/HM_spycam
+ExecStart=/home/pi/HomeManager/HM_spycam/venv/bin/python3 -m src.main
+Restart=always
+User=pi
+StandardOutput=file:/home/pi/HomeManager/HM_spycam/logs/HM_spycam.log
+StandardError=file:/home/pi/HomeManager/HM_spycam/logs/HM_spycam.log
+
+[Install]
+WantedBy=multi-user.target
+
