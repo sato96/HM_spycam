@@ -21,7 +21,7 @@ __pycache__/
 HM_notifier.env
 HM_notifier.service
 *.mp4
-
+config.json
 
 # Backup & roba editor
 *.bak

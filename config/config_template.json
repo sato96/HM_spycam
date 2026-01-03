@@ -1,0 +1,8 @@
+{
+    "port": "yourPortNumber",
+    "service": "yourServiceName",
+    "threshold": 25,
+    "url": "mqtt://<yourMQTTBroker>:1883",
+    "topic": "/yourTopic",
+    "status": "off/on"
+}

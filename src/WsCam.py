@@ -78,7 +78,6 @@ def init_routes(app, cam, logger=None):
     def tresh():
         code = 200
         try:
-
             body = request.data
             dati = json.loads(body.decode('utf-8'))
             b = dati['threshold']

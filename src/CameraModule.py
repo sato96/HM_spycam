@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import threading
 import time
 import numpy as np
 from picamera2 import Picamera2
@@ -20,7 +21,9 @@ class spycam(object):
 		self.realodConfig()
 		self._picam2 = None
 		self._lsize = (320, 240)
-		self._recording = False
+		if self._recording:
+			t0 = threading.Thread(target=self.start)
+			t0.start()
  
 	@property
 	def thresh(self):
@@ -63,6 +66,7 @@ class spycam(object):
 		self._service = config.get("service", "cameraModule")
 		self._topic = config["topic"]
 		self._sender = Msg(self._service, self._url, self._topic)
+		self._recording = False if config.get("status", "off") == "off" else True
 
 
 	def getConfig(self):
