@@ -2,6 +2,7 @@
 
 import threading
 import time
+from PIL import Image
 import numpy as np
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
@@ -80,6 +81,7 @@ class spycam(object):
 	def start(self):
 		if not self._recording:
 			self._recording = True
+			self._saveConfig({"status":"on"})
 			self._record()
 		return True
 
@@ -95,7 +97,10 @@ class spycam(object):
 		self._encoder = H264Encoder(1000000)	
 		self._picam2.start()
 		if self._colorScheme == "BW":
-			self._picam2.set_controls({"Saturation": 0.0, "AwbMode": controls.AwbModeEnum.Greyworld})
+			self._picam2.set_controls({
+			"Saturation": 0.0,
+			"AwbMode": controls.AwbModeEnum.Auto
+			})
 		time.sleep(2)  # Allow camera to warm up
 		w, h = self._lsize
 		prev = None
@@ -155,22 +160,34 @@ class spycam(object):
 
 	def stop(self):
 		self._recording = False
+		self._saveConfig({"status":"off"})
 
 	def pic(self):
 		s = None
 		try:
 			if self._recording:
-				img = self._picam2.capture_image()
-				gray_img = img.convert("L")
-				s = gray_img
+				if self._colorScheme == "RGB":
+					img = self._picam2.capture_image()
+					s = img
+					#gray_img = img.convert("L")
+					#s = gray_img
+				else:
+					frame = self._picam2.capture_array("main")
+            
+					# In YUV420, i primi 'altezza' righe sono la luminanza (B/N)
+					h, w = 720, 1280 
+					y_channel = frame[:h, :w]
+					
+					# Crea l'immagine PIL direttamente dai dati della luminanza
+					s = Image.fromarray(y_channel, mode='L')
 			else:
 				self._picam2 = Picamera2()
 				self._picam2.configure(self._picam2.create_still_configuration(main={"size": (1280, 720)},transform=Transform(vflip=self._flipImg)))
 				self._picam2.start()
 				time.sleep(1)
 				img = self._picam2.capture_image()
-				gray_img = img.convert("L") 
-				s = gray_img
+				#gray_img = img.convert("L") 
+				s = img
 				self._picam2.stop()
 				self._picam2.close()
 				print("Picture taken")
