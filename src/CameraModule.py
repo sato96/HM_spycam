@@ -8,6 +8,7 @@ from picamera2.encoders import H264Encoder
 from picamera2.outputs import FfmpegOutput
 from picamera2.outputs import FileOutput
 from libcamera import Transform
+from libcamera import controls
 import time
 import json
 from HM_notification import Msg
@@ -67,6 +68,9 @@ class spycam(object):
 		self._topic = config["topic"]
 		self._sender = Msg(self._service, self._url, self._topic)
 		self._recording = False if config.get("status", "off") == "off" else True
+		self._timeSleep = config.get("timeSleep", 0.1)
+		self._flipImg = config.get("flipImg", False)
+		self._colorScheme = config.get("colorScheme", "BW")
 
 
 	def getConfig(self):
@@ -81,15 +85,18 @@ class spycam(object):
 
 	def _record(self):	
 		self._picam2 = Picamera2()
+		color = "YUV420" if self._colorScheme == "BW" else "RGB888"
 		video_config = self._picam2.create_video_configuration(
-			main={"size": (1280, 720), "format": "RGB888"},  # color video
+			main={"size": (1280, 720), "format": color}, 
 			lores={"size": self._lsize, "format": "YUV420"},  # For motion detection - luminance only
-			transform=Transform(vflip=True)
+			transform=Transform(vflip=self._flipImg)
 		)
 		self._picam2.configure(video_config)
 		self._encoder = H264Encoder(1000000)	
 		self._picam2.start()
-		time.sleep(2)
+		if self._colorScheme == "BW":
+			self._picam2.set_controls({"Saturation": 0.0, "AwbMode": controls.AwbModeEnum.Greyworld})
+		time.sleep(2)  # Allow camera to warm up
 		w, h = self._lsize
 		prev = None
 		encoding = False
@@ -102,7 +109,7 @@ class spycam(object):
 					# using YUV420, get only y plane (luminance)
 					cur = self._picam2.capture_array("lores")
 					# y plane is in the first h rows
-					cur = cur[:h, :w].astype(np.float32)
+					cur = cur[:h, :w].astype(np.int16)
 					
 				except Exception as e:
 					continue
@@ -122,7 +129,7 @@ class spycam(object):
 							encoding = False
 							self._sender.video = video_filename
 							self._sender.sendMsg()
-							time.sleep(5)	
+							time.sleep(2)	
 					else:
 						if encoding and time.time() - ltime > 2.0:
 							self._picam2.stop_encoder()
@@ -133,7 +140,7 @@ class spycam(object):
 								self._sender.sendMsg()
 				
 				prev = cur.copy()
-				time.sleep(0.1)
+				time.sleep(self._timeSleep)
 				
 		except Exception as e:
 			if encoding:
@@ -158,7 +165,7 @@ class spycam(object):
 				s = gray_img
 			else:
 				self._picam2 = Picamera2()
-				self._picam2.configure(self._picam2.create_still_configuration(main={"size": (1280, 720)},transform=Transform(vflip=True)))
+				self._picam2.configure(self._picam2.create_still_configuration(main={"size": (1280, 720)},transform=Transform(vflip=self._flipImg)))
 				self._picam2.start()
 				time.sleep(1)
 				img = self._picam2.capture_image()

@@ -7,7 +7,6 @@ Pillow>=9.0
 # Raspberry Pi camera (may require system packages)
 
 # Project-specific dependencies (git)
-git+https://github.com/sato96/HM_db_connector.git@main
 git+https://github.com/sato96/HM_notification.git@main
 git+https://github.com/sato96/HM_response.git@dev
 

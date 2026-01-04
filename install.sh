@@ -20,8 +20,11 @@ echo "[*] Installing Python dependencies..."
 ./venv/bin/pip install -r requirements.txt
 
 echo "[*] Creating log files..."
-sudo touch /var/log/HM_spycam.log
-sudo chown pi:pi /var/log/HM_spycam.log
+mkdir logs
+touch logs/HM_spycam.log
+mkdir video
+touch video/video.mp4
+
 
 echo "[*] Installing logrotate configuration..."
 sudo cp logrotate.conf /etc/logrotate.d/HM_spycam
