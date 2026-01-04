@@ -1,2 +1,0 @@
-{"port": "5004", "service": "picamerav2noIR", "threshold":25, "url": "mqtt://localhost:1883", "topic":"/alert"}
-
