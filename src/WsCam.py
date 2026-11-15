@@ -28,14 +28,17 @@ def init_routes(app, cam, logger=None):
     def parameters():
         code = 200
         status = 'ok'
+        data = {}
         try:
-            resp = cam.getConfig()
+            # whole config file + software version, same JSON in data and response
+            resp = {**cam.getConfig(), 'version': __version__}
+            data = resp
         except Exception as e:
             logger.error(e)
             code = 500
             resp = 'Error ' + str(e)
             status = 'ko'
-        return MsgResponse(status, data = {}, response=resp, status_code=code).flask_response()
+        return MsgResponse(status, data=data, response=resp, status_code=code).flask_response()
 
 
     @app.route('/start', methods=['POST'])

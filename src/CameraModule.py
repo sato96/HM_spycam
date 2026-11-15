@@ -20,9 +20,9 @@ class spycam(object):
 	def __init__(self, th = 7, fileConfig = 'config/config.json'):
 		#vanno gestiti e caricati i parametri di luminosità etc
 		self._fileName = fileConfig
+		self._lsize = (320, 240)
 		self.realodConfig()
 		self._picam2 = None
-		self._lsize = (320, 240)
 		if self._recording:
 			t0 = threading.Thread(target=self.start)
 			t0.start()
@@ -35,7 +35,7 @@ class spycam(object):
 	@thresh.setter
 	def thresh(self, new_value):
 		if new_value == "default":
-			self._thresh = 7
+			self._thresh = 25
 		else:
 			self._thresh = int(new_value)
 		j = {"threshold":self._thresh}
@@ -72,11 +72,32 @@ class spycam(object):
 		self._timeSleep = config.get("timeSleep", 0.1)
 		self._flipImg = config.get("flipImg", False)
 		self._colorScheme = config.get("colorScheme", "BW")
+		# Rilevamento movimento: 'threshold' = differenza per-pixel (0-255) dopo rimozione luminosita' globale
+		self._areaPct = float(config.get("areaPct", 1.5))      # % minima di pixel cambiati
+		self._minFrames = int(config.get("minFrames", 2))      # frame consecutivi richiesti
+		# regioni da ignorare, coordinate sul frame lores 320x240: [[x0,y0,x1,y1], ...]
+		self._ignore = config.get("ignoreRegions", [])
+		self._mask = self._buildMask()
 
+
+	def _prepare(self, y):
+		"""Riduce il rumore (media su blocchi 4x4 -> 80x60) e toglie la luminosita' media,
+		cosi' le variazioni globali di esposizione/luce non generano falsi positivi."""
+		h, w = y.shape
+		b = y.astype(np.float32).reshape(h // 4, 4, w // 4, 4).mean(axis=(1, 3))
+		return b - b.mean()
+
+	def _buildMask(self):
+		mask = np.ones((self._lsize[1] // 4, self._lsize[0] // 4), dtype=bool)
+		for x0, y0, x1, y1 in self._ignore:
+			mask[int(y0) // 4:-(-int(y1) // 4), int(x0) // 4:-(-int(x1) // 4)] = False
+		if not mask.any():  # evita maschera vuota
+			mask[:] = True
+		return mask
 
 	def getConfig(self):
-		config = {'threshold': self._thresh}
-		return config
+		with open(self._fileName, 'r') as file:
+			return json.load(file)
 
 	def start(self):
 		if not self._recording:
@@ -106,6 +127,7 @@ class spycam(object):
 		prev = None
 		encoding = False
 		ltime = 0
+		hits = 0
 		encoding_start_time = 0
 		max_recording_duration = 30
 		try:
@@ -114,14 +136,15 @@ class spycam(object):
 					# using YUV420, get only y plane (luminance)
 					cur = self._picam2.capture_array("lores")
 					# y plane is in the first h rows
-					cur = cur[:h, :w].astype(np.int16)
+					cur = self._prepare(cur[:h, :w])
 					
 				except Exception as e:
 					continue
 				
 				if prev is not None:
-					mse = np.square(cur - prev).mean()
-					if mse > self._thresh:
+					changed = (np.abs(cur - prev) > self._thresh)[self._mask].mean() * 100
+					hits = hits + 1 if changed > self._areaPct else 0
+					if hits >= self._minFrames:
 						if not encoding:
 							video_filename = f"video/motion.mp4"
 							self._encoder.output = FfmpegOutput(video_filename)

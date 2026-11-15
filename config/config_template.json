@@ -4,8 +4,11 @@
     "threshold": 25,
     "url": "mqtt://<yourMQTTBroker>:1883",
     "topic": "/yourTopic",
-    "status": "off/on",
+    "status": "off",
     "flipImg": true,
     "colorScheme": "RGB/BW",
-    "timeSleep": 0.1
+    "timeSleep": 0.1,
+    "areaPct": 1.5,
+    "minFrames": 2,
+    "ignoreRegions": []
 }
