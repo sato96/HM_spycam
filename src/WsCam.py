@@ -2,6 +2,7 @@ import base64, json, threading, logging
 from io import BytesIO
 from flask import request
 from HM_response import MsgResponse
+from src import __version__
 
 def init_routes(app, cam, logger=None):
     logger = logger or logging.getLogger(__name__)
